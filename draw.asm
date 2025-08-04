@@ -179,21 +179,21 @@ TEST_pixel_64_by_48_char_mapping
 	ld (Y_Plot_Position), a     
 	call drawPixel    
 
-    ld a, 2
-	ld (X_Plot_Position), a
-    ld a, 2
-	ld (Y_Plot_Position), a     
-	call drawPixel    
-
-    ld a, 3
-	ld (X_Plot_Position), a
-    ld a, 3
-	ld (Y_Plot_Position), a     
-	call drawPixel    
-
     ld a, 4
 	ld (X_Plot_Position), a
     ld a, 4
+	ld (Y_Plot_Position), a     
+	call drawPixel    
+
+    ld a, 8
+	ld (X_Plot_Position), a
+    ld a, 8
+	ld (Y_Plot_Position), a     
+	call drawPixel    
+
+    ld a, 16
+	ld (X_Plot_Position), a
+    ld a, 16
 	ld (Y_Plot_Position), a     
 	call drawPixel        
 
