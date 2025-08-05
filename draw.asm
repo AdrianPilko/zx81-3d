@@ -123,7 +123,6 @@ plotCharacter
     ld (hl), a
 	ret
 
-
 ;;; test code
 
 TEST_pixel_64_by_48_char_mapping
