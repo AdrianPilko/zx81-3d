@@ -54,30 +54,15 @@ Y_Plot_Position
 
 drawPixel 
     ld a, (X_Plot_Position)
-
+    inc a
     ld b, 1
     and b
     cp 1
-    jr nz, X_Is_Even
+    jr z, X_Is_Odd
     ;; fall through
-X_Is_Odd
-    ; if x coord is x and y coord odd then character = $87
-    ld a, (Y_Plot_Position)
-    ; mask the lower 4 bits - this gives the character
-    ld b, 1
-    and b
-    cp 1
-    jr z, X_and_Y_Odd     
-    ;; fall through    
-X_Odd_Y_Even
-    ld a, 2
-    jr plotCharacter
-X_and_Y_Odd
-    ld a, $87
-    jr plotCharacter
-
 X_Is_Even
     ld a, (Y_Plot_Position)
+    inc a
     ; mask the lower 4 bits - this gives the character
     ld b, 1
     and b
@@ -89,6 +74,23 @@ X_Even_Y_Even
     jr plotCharacter
 X_Even_Y_Odd   
     ld a, 4
+    jr plotCharacter
+X_Is_Odd
+    ; if x coord is x and y coord odd then character = $87
+    ld a, (Y_Plot_Position)
+    inc a
+    ; mask the lower 4 bits - this gives the character
+    ld b, 1
+    and b
+    cp 1
+    jr z, X_and_Y_Odd     
+    ;; fall through    
+X_Odd_Y_Even
+    ld a, 2
+    jr plotCharacter
+X_and_Y_Odd
+    ld a, $87
+    
 
 
 plotCharacter
@@ -112,7 +114,7 @@ secondPixelLoop
         add hl, de
     ld a, (hl)   
     pop bc
-    or b
+    xor b
     ld (hl), a
 	ret
 
@@ -122,33 +124,34 @@ secondPixelLoop
 TEST_pixel_64_by_48_char_mapping
 	call CLS
 
-    ld a, 1
-	ld (X_Plot_Position), a
-    ld a, 1
-	ld (Y_Plot_Position), a     
-	call drawPixel    
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY
+    push bc     
+        ld b, 30
+loopXY_inner
+        push bc            
+            call drawPixel      
+            ld a, (X_Plot_Position)
+            inc a         
+            ld (X_Plot_Position), a        
+        pop bc
+        djnz loopXY_inner
+        ld a, (Y_Plot_Position)
+        inc a           
+            inc a        
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY
 
-    ld a, 4
-	ld (X_Plot_Position), a
-    ld a, 4
-	ld (Y_Plot_Position), a     
-	call drawPixel    
-
-    ld a, 8
-	ld (X_Plot_Position), a
-    ld a, 8
-	ld (Y_Plot_Position), a     
-	call drawPixel    
-
-    ld a, 16
-	ld (X_Plot_Position), a
-    ld a, 16
-	ld (Y_Plot_Position), a     
-	call drawPixel        
-
-
-
-	ret
+END_TEST    
+    jr END_TEST
+    ret
 
 
 TEST_PIX_text_1
