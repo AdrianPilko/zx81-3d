@@ -82,25 +82,42 @@ X_and_Y_Odd
 
 
 plotCharacter
-    push af        
-        ld a, (X_Plot_Position)
-        sra a   ; divide a by 2 giving proper character position
-        ld hl, Display
-        inc hl
-        ld de, 0
-        ld e, a        
-        add hl, de
-        ld a, (Y_Plot_Position)
-        sra a ; divide a by 2 giving proper y position
-        ld b, a
-        inc b ; (just in case it's zero - we correct address after by -33)
-        ld de, 33
-secondPixelLoop        
-        add hl, de
-        djnz secondPixelLoop
-        ld de, -33
-        add hl, de
-        ld a, (hl)   
+    push af
+
+
+    ld a, (Y_Plot_Position)
+    sra a
+    ld b, a
+    ld a, (X_Plot_Position)
+    sra a
+    ld c, a    
+
+    ld   a, b         ; a = row
+    ld   l, a
+    ld   h, 0         ; hl = row (16-bit)
+
+    ; multiply hl by 33 (i.e., hl = hl * 33 = hl * 32 + hl)
+    push hl           ; save hl = row
+    add  hl, hl       ; hl = row * 2
+    add  hl, hl       ; hl = row * 4
+    add  hl, hl       ; hl = row * 8
+    add  hl, hl       ; hl = row * 16
+    add  hl, hl       ; hl = row * 32
+    pop  de           ; de = row
+    add  hl, de       ; hl = row * 33
+
+    ; add column
+    ld   a, c
+    ld   e, a
+    ld   d, 0
+    add  hl, de       ; hl = row * 33 + column
+
+    ; add screen base address
+    ld   de, Display    
+    inc de
+    add  hl, de       ; hl = screen address
+
+    ld a, (hl)   
     pop bc
     xor b
     ld (hl), a
