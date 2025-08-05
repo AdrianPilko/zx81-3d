@@ -55,19 +55,14 @@ Y_Plot_Position
 drawPixel 
     ld a, (X_Plot_Position)
     inc a
-    ld b, 1
-    and b
-    cp 1
-    jr z, X_Is_Odd
+    and 1
+    jr nz, X_Is_Odd
     ;; fall through
 X_Is_Even
     ld a, (Y_Plot_Position)
-    inc a
-    ; mask the lower 4 bits - this gives the character
-    ld b, 1
-    and b
-    cp 1
-    jr z, X_Even_Y_Odd     
+    inc a    
+    and 1
+    jr nz, X_Even_Y_Odd     
     ;; fall through    
 X_Even_Y_Even
     ld a, 1
@@ -76,14 +71,10 @@ X_Even_Y_Odd
     ld a, 4
     jr plotCharacter
 X_Is_Odd
-    ; if x coord is x and y coord odd then character = $87
     ld a, (Y_Plot_Position)
     inc a
-    ; mask the lower 4 bits - this gives the character
-    ld b, 1
-    and b
-    cp 1
-    jr z, X_and_Y_Odd     
+    and 1
+    jr nz, X_and_Y_Odd     
     ;; fall through    
 X_Odd_Y_Even
     ld a, 2
