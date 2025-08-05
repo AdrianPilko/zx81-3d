@@ -54,13 +54,11 @@ Y_Plot_Position
 
 drawPixel 
     ld a, (X_Plot_Position)
-    inc a
     and 1
     jr nz, X_Is_Odd
     ;; fall through
 X_Is_Even
     ld a, (Y_Plot_Position)
-    inc a    
     and 1
     jr nz, X_Even_Y_Odd     
     ;; fall through    
@@ -68,11 +66,10 @@ X_Even_Y_Even
     ld a, 1
     jr plotCharacter
 X_Even_Y_Odd   
-    ld a, 4
+    ld a, $4
     jr plotCharacter
 X_Is_Odd
     ld a, (Y_Plot_Position)
-    inc a
     and 1
     jr nz, X_and_Y_Odd     
     ;; fall through    
@@ -103,7 +100,7 @@ secondPixelLoop
         djnz secondPixelLoop
         ld de, -33
         add hl, de
-    ld a, (hl)   
+        ld a, (hl)   
     pop bc
     xor b
     ld (hl), a
@@ -113,8 +110,9 @@ secondPixelLoop
 ;;; test code
 
 TEST_pixel_64_by_48_char_mapping
-	call CLS
 
+    ; test 1 vertical bars
+	call CLS
     ld a, 0    
     ld (X_Plot_Position), a
     ld a, 0
@@ -127,19 +125,92 @@ loopXY_inner
         push bc            
             call drawPixel      
             ld a, (X_Plot_Position)
-            inc a         
+            inc a       
+            inc a  
             ld (X_Plot_Position), a        
         pop bc
         djnz loopXY_inner
         ld a, (Y_Plot_Position)
-        inc a           
-            inc a        
+        inc a                               
         ld (Y_Plot_Position), a
         ld a, 0    
         ld (X_Plot_Position), a
     pop bc
     djnz loopXY
 
+    call delaySome
+
+
+
+    ; test 2 horizontal bars
+	call CLS
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY2
+    push bc     
+        ld b, 30
+loopXY_inner2
+        push bc            
+            call drawPixel      
+            ld a, (X_Plot_Position)
+            inc a       
+            ld (X_Plot_Position), a        
+        pop bc
+        djnz loopXY_inner2
+        ld a, (Y_Plot_Position)
+        inc a                               
+        inc a         
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY2
+
+    call delaySome
+
+	
+    ;; Test 3 diagonal line left to right
+    call CLS
+    ld a, 0
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY3
+    push bc     
+        call drawPixel      
+        ld a, (X_Plot_Position)
+        inc a       
+        ld (X_Plot_Position), a        
+        ld a, (Y_Plot_Position)
+        inc a       
+        ld (Y_Plot_Position), a                        
+    pop bc
+    djnz loopXY3
+
+    call delaySome
+
+    ;; Test 4 diagonal line right to left
+    call CLS
+    ld a, 20
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY4
+    push bc     
+        call drawPixel      
+        ld a, (X_Plot_Position)
+        dec a       
+        ld (X_Plot_Position), a        
+        ld a, (Y_Plot_Position)
+        inc a       
+        ld (Y_Plot_Position), a                        
+    pop bc
+    djnz loopXY4
 END_TEST    
     jr END_TEST
     ret
