@@ -64,10 +64,10 @@ X_Is_Even
     ;; fall through    
 X_Even_Y_Even
     ld a, 1
-    jr plotCharacter
+    jr findAddress
 X_Even_Y_Odd   
-    ld a, $4
-    jr plotCharacter
+    ld a, 4
+    jr findAddress
 X_Is_Odd
     ld a, (Y_Plot_Position)
     and 1
@@ -75,57 +75,100 @@ X_Is_Odd
     ;; fall through    
 X_Odd_Y_Even
     ld a, 2
-    jr plotCharacter
+    jr findAddress
 X_and_Y_Odd
     ld a, $87
     
-
-
-plotCharacter
+findAddress
     push af
 
+        ld a, (Y_Plot_Position)
+        sra a
+        ld b, a
 
-    ld a, (Y_Plot_Position)
-    sra a
-    ld b, a
-    ld a, (X_Plot_Position)
-    sra a
-    ld c, a    
+        ld   l, b
+        ld   h, 0         ; hl = row (16-bit)
 
-    ld   a, b         ; a = row
-    ld   l, a
-    ld   h, 0         ; hl = row (16-bit)
+        ; multiply hl by 33 (i.e., hl = hl * 33 = hl * 32 + hl)
+        push hl           ; save hl = row
+            add  hl, hl       ; hl = row * 2
+            add  hl, hl       ; hl = row * 4
+            add  hl, hl       ; hl = row * 8
+            add  hl, hl       ; hl = row * 16
+            add  hl, hl       ; hl = row * 32
+        pop  de           ; de = row
+        add  hl, de       ; hl = row * 33
 
-    ; multiply hl by 33 (i.e., hl = hl * 33 = hl * 32 + hl)
-    push hl           ; save hl = row
-    add  hl, hl       ; hl = row * 2
-    add  hl, hl       ; hl = row * 4
-    add  hl, hl       ; hl = row * 8
-    add  hl, hl       ; hl = row * 16
-    add  hl, hl       ; hl = row * 32
-    pop  de           ; de = row
-    add  hl, de       ; hl = row * 33
+        ; add column
+        ld a, (X_Plot_Position)
+        sra a
+        ld c, a       
+        ld   e, c
+        ld   d, 0
+        add  hl, de       ; hl = row * 33 + column
 
-    ; add column
-    ld   a, c
-    ld   e, a
-    ld   d, 0
-    add  hl, de       ; hl = row * 33 + column
-
-    ; add screen base address
-    ld   de, Display    
-    inc de
-    add  hl, de       ; hl = screen address
-
-    ld a, (hl)   
-    pop bc
+        ; add screen base address
+        ld   de, Display    
+        inc de
+        add  hl, de       ; hl = screen address
+        ld a, (hl)           
+    pop bc    
     xor b
     ld (hl), a
-	ret
+    ret
+
+
+
+undrawPixel 
+    
+findAddress_U
+    push af
+
+        ld a, (Y_Plot_Position)
+        sra a
+        ld b, a
+
+        ld   l, b
+        ld   h, 0         ; hl = row (16-bit)
+
+        ; multiply hl by 33 (i.e., hl = hl * 33 = hl * 32 + hl)
+        push hl           ; save hl = row
+            add  hl, hl       ; hl = row * 2
+            add  hl, hl       ; hl = row * 4
+            add  hl, hl       ; hl = row * 8
+            add  hl, hl       ; hl = row * 16
+            add  hl, hl       ; hl = row * 32
+        pop  de           ; de = row
+        add  hl, de       ; hl = row * 33
+
+        ; add column
+        ld a, (X_Plot_Position)
+        sra a
+        ld c, a       
+        ld   e, c
+        ld   d, 0
+        add  hl, de       ; hl = row * 33 + column
+
+        ; add screen base address
+        ld   de, Display    
+        inc de
+        add  hl, de       ; hl = screen address
+        ld a, (hl)           
+    cp 4
+    pop bc     
+    jr c, undrawPixelEnd           
+    xor $8f        
+undrawPixelEnd
+    ld (hl), a
+    ret
+
+
+
 
 ;;; test code
 
 TEST_pixel_64_by_48_char_mapping
+    jp doThisTestPlotChar
 
     ; test 1 vertical bars
 	call CLS
@@ -227,12 +270,120 @@ loopXY4
         ld (Y_Plot_Position), a                        
     pop bc
     djnz loopXY4
+
+doThisTestPlotChar
+    call delaySome
+
+    ; test 5 solid block
+	call CLS
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 40
+loopXY5
+    push bc     
+        ld b, 40
+loopXY_inner5
+        ld a, (X_Plot_Position)
+        push bc           
+            call drawPixel      
+            ld a, (X_Plot_Position)
+            inc a       
+            ld (X_Plot_Position), a        
+        pop bc
+        ld (X_Plot_Position), a        
+        djnz loopXY_inner5
+        ld a, (Y_Plot_Position)
+        inc a                                
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY5
+
+    call delaySome
+
+    ; test unplotCharacter
+
+	;; don't CLS screen the whole point is should blank
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 40
+loopXY6
+    push bc     
+        ld b, 40
+loopXY_inner6
+        ld a, (X_Plot_Position)
+        push bc           
+            call undrawPixel      
+            ld a, (X_Plot_Position)
+            inc a       
+            ld (X_Plot_Position), a        
+        pop bc
+        ld (X_Plot_Position), a        
+        djnz loopXY_inner6
+        ld a, (Y_Plot_Position)
+        inc a                                
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY6
+
+    call CLS
+;; solid block again then unplot diagonal
+    call delaySome
+
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 40
+loopXY7
+    push bc     
+        ld b, 40
+loopXY_inner7
+        ld a, (X_Plot_Position)
+        push bc           
+            call drawPixel      
+            ld a, (X_Plot_Position)
+            inc a       
+            ld (X_Plot_Position), a        
+        pop bc
+        ld (X_Plot_Position), a        
+        djnz loopXY_inner7
+        ld a, (Y_Plot_Position)
+        inc a                                
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY7
+
+    call delaySome
+
+
+    ;; Test 8 un draw diagonal line right to left
+    ld a, 20
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY8
+    push bc     
+        call undrawPixel      
+        ld a, (X_Plot_Position)
+        dec a       
+        ld (X_Plot_Position), a        
+        ld a, (Y_Plot_Position)
+        inc a       
+        ld (Y_Plot_Position), a                        
+    pop bc
+    djnz loopXY8   
+
 END_TEST    
     jr END_TEST
     ret
-
-
-TEST_PIX_text_1
-	defb _P,_I,_X,_E,_L,0,_P,_O,_S,_I,_T,_I,_O,_N,$ff
-TEST_PIX_text_2
-	defb _C,_H,_A,_R,0,_R,_E,_S,_U,_L,_T,$ff
