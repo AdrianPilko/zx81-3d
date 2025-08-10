@@ -52,8 +52,63 @@ X_Plot_Position
 Y_Plot_Position
     defb 0
 
+
+
 drawPixel 
-    ld a, (X_Plot_Position)
+    jp calcPixelAlternate3
+
+
+; RB code after chat gpt 5!
+calcPixelAlternate1    ; faster one that Roger got from chat gpt 5
+; Inputs: (x_pos), (y_pos)
+; Output: A = final character value
+
+    ld   a,(Y_Plot_Position)    ; 13T
+    and  1            ; 7T      ; A = y (0 or 1)
+    jr   nz,do_y1     ; 12T if taken, 7T if not taken
+
+    ; y = 0  -> A = 5 + x
+    ld   a,(X_Plot_Position)    ; 13T
+    and  1            ; 7T      ; A = x (0 or 1)
+    add  a,5          ; 7T
+    jr findAddress
+
+do_y1:
+    ; y = 1  -> A = 134 - x
+    ld   a,(X_Plot_Position)    ; 13T
+    and  1            ; 7T      ; A = x
+    ld   c,a          ; 4T
+    ld   a,134        ; 7T
+    sub  c            ; 4T
+    jp findAddress
+
+; RB code
+calcPixelAlternate2
+    ld a,(X_Plot_Position)
+    and 01h
+    inc a
+    ld l,a     ; l holds x pixel offset, either 1 or 2
+    ld a,(Y_Plot_Position)
+    and 01h
+    inc a
+    sla a
+    sla a      ; multiply by 4
+    or  l    ; merge bottom 2 bits
+
+    ; a is now a 4 bit value, bits 0 and 1 are the x pixel bits 2 and 3 are the y pixel
+    bit 3, a    ; if value > 8 then set to 135    
+    jr z, _noInverse
+    and 07h
+    ld l,a
+    ld a,135
+    sub l    
+_noInverse 
+    jp findAddress 
+
+calcPixelAlternate3
+    ld hl, (X_Plot_Position)    ;hl now both X_Plot_Position and Y_Plot_Position
+                                ; because they are consecutive in memory
+    ld a, l
     and 1
     jr nz, X_Is_Odd
     ;; fall through
@@ -69,7 +124,7 @@ X_Even_Y_Odd
     ld a, 4
     jr findAddress
 X_Is_Odd
-    ld a, (Y_Plot_Position)
+    ld a, h              ; (Y_Plot_Position)
     and 1
     jr nz, X_and_Y_Odd     
     ;; fall through    
@@ -79,8 +134,14 @@ X_Odd_Y_Even
 X_and_Y_Odd
     ld a, $87
     
+    
 findAddress
     push af
+    push af 
+
+        ld de, 673
+        call print_number8bits
+    pop af 
 
         ld a, (Y_Plot_Position)
         sra a
@@ -113,65 +174,47 @@ findAddress
         add  hl, de       ; hl = screen address
         ld a, (hl)           
     pop bc    
+before_XOR_B
     xor b
     ld (hl), a
+
+    call delayTinyAmount
     ret
 
 
 
 undrawPixel 
-    
-findAddress_U
-    push af
-
-        ld a, (Y_Plot_Position)
-        sra a
-        ld b, a
-
-        ld   l, b
-        ld   h, 0         ; hl = row (16-bit)
-
-        ; multiply hl by 33 (i.e., hl = hl * 33 = hl * 32 + hl)
-        push hl           ; save hl = row
-            add  hl, hl       ; hl = row * 2
-            add  hl, hl       ; hl = row * 4
-            add  hl, hl       ; hl = row * 8
-            add  hl, hl       ; hl = row * 16
-            add  hl, hl       ; hl = row * 32
-        pop  de           ; de = row
-        add  hl, de       ; hl = row * 33
-
-        ; add column
-        ld a, (X_Plot_Position)
-        sra a
-        ld c, a       
-        ld   e, c
-        ld   d, 0
-        add  hl, de       ; hl = row * 33 + column
-
-        ; add screen base address
-        ld   de, Display    
-        inc de
-        add  hl, de       ; hl = screen address
-        ld a, (hl)           
-    cp 4
-    pop bc     
-    jr c, undrawPixelEnd           
-    xor $8f        
-undrawPixelEnd
-    ld (hl), a
-    ret
-
-
+    ret    
 
 
 ;;; test code
 
 TEST_pixel_64_by_48_char_mapping
-    jp doThisTestPlotChar
-
     ; test 1 vertical bars
 	call CLS
+
+
+    ld hl, Display
+    inc hl
+    ld de, 661
+    add hl, de
+    ld a, 61
+    ld (hl), a
+
+    ld hl, Display
+    inc hl
+    ld de, 666
+    add hl, de
+    ld a, 62
+    ld (hl), a
+
+    ld hl, Display
+    inc hl
+    ld de, 671
+    add hl, de
+    ld a, 38
+    ld (hl), a
+
     ld a, 0    
     ld (X_Plot_Position), a
     ld a, 0
@@ -182,10 +225,17 @@ loopXY
         ld b, 30
 loopXY_inner
         push bc            
+            ld de, 663
+            ld a, (X_Plot_Position)
+            call print_number8bits
+            ld de, 668
+            ld a, (Y_Plot_Position)            
+            call print_number8bits
+
             call drawPixel      
             ld a, (X_Plot_Position)
             inc a       
-            inc a  
+            ;inc a  
             ld (X_Plot_Position), a        
         pop bc
         djnz loopXY_inner
@@ -198,7 +248,7 @@ loopXY_inner
     djnz loopXY
 
     call delaySome
-
+    jr TEST_pixel_64_by_48_char_mapping
 
 
     ; test 2 horizontal bars
@@ -271,7 +321,9 @@ loopXY4
     pop bc
     djnz loopXY4
 
-doThisTestPlotChar
+END_TEST    
+    jr END_TEST
+
     call delaySome
 
     ; test 5 solid block
@@ -363,27 +415,5 @@ loopXY_inner7
     pop bc
     djnz loopXY7
 
-    call delaySome
-
-
-    ;; Test 8 un draw diagonal line right to left
-    ld a, 20
-    ld (X_Plot_Position), a
-    ld a, 0
-	ld (Y_Plot_Position), a
-    ld b, 20
-loopXY8
-    push bc     
-        call undrawPixel      
-        ld a, (X_Plot_Position)
-        dec a       
-        ld (X_Plot_Position), a        
-        ld a, (Y_Plot_Position)
-        inc a       
-        ld (Y_Plot_Position), a                        
-    pop bc
-    djnz loopXY8   
-
-END_TEST    
-    jr END_TEST
     ret
+

@@ -118,3 +118,16 @@ delaySomeInner
     pop bc
     djnz delaySomeOuter
     ret
+
+delayTinyAmount
+    ld b, $ff
+delayTinyOuter
+    push bc
+        ld b, $0f
+delayTinyInner
+        inc a
+        dec a
+        djnz delayTinyInner
+    pop bc
+    djnz delayTinyOuter
+    ret
