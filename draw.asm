@@ -61,6 +61,7 @@ drawPixel
 ; load from h to a and l to a each 4
 ; so either (13 * 2) + (2 * 4) = 34, or 16 + 8 = 24 saving 8, so use ld hl, (nn)
 
+; see comments and this code up to findAddress is 69 T states
 
 calcPixelAlternate3
     ld hl, (X_Plot_Position) ; 16 T states  ; hl now both X_Plot_Position and Y_Plot_Position
