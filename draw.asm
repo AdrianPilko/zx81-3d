@@ -55,94 +55,45 @@ Y_Plot_Position
 
 
 drawPixel 
-    jp calcPixelAlternate3
+   
+; why using ld hl, (nn) rather than two ld a, (nn) for X/Y positions
+; ld a, (nn) is 13 T states, ld hl, (nn) is 16, but we have todo another 
+; load from h to a and l to a each 4
+; so either (13 * 2) + (2 * 4) = 34, or 16 + 8 = 24 saving 8, so use ld hl, (nn)
 
-
-; RB code after chat gpt 5!
-calcPixelAlternate1    ; faster one that Roger got from chat gpt 5
-; Inputs: (x_pos), (y_pos)
-; Output: A = final character value
-
-    ld   a,(Y_Plot_Position)    ; 13T
-    and  1            ; 7T      ; A = y (0 or 1)
-    jr   nz,do_y1     ; 12T if taken, 7T if not taken
-
-    ; y = 0  -> A = 5 + x
-    ld   a,(X_Plot_Position)    ; 13T
-    and  1            ; 7T      ; A = x (0 or 1)
-    add  a,5          ; 7T
-    jr findAddress
-
-do_y1:
-    ; y = 1  -> A = 134 - x
-    ld   a,(X_Plot_Position)    ; 13T
-    and  1            ; 7T      ; A = x
-    ld   c,a          ; 4T
-    ld   a,134        ; 7T
-    sub  c            ; 4T
-    jp findAddress
-
-; RB code
-calcPixelAlternate2
-    ld a,(X_Plot_Position)
-    and 01h
-    inc a
-    ld l,a     ; l holds x pixel offset, either 1 or 2
-    ld a,(Y_Plot_Position)
-    and 01h
-    inc a
-    sla a
-    sla a      ; multiply by 4
-    or  l    ; merge bottom 2 bits
-
-    ; a is now a 4 bit value, bits 0 and 1 are the x pixel bits 2 and 3 are the y pixel
-    bit 3, a    ; if value > 8 then set to 135    
-    jr z, _noInverse
-    and 07h
-    ld l,a
-    ld a,135
-    sub l    
-_noInverse 
-    jp findAddress 
 
 calcPixelAlternate3
-    ld hl, (X_Plot_Position)    ;hl now both X_Plot_Position and Y_Plot_Position
-                                ; because they are consecutive in memory
-    ld a, l
-    and 1
-    jr nz, X_Is_Odd
+    ld hl, (X_Plot_Position) ; 16 T states  ; hl now both X_Plot_Position and Y_Plot_Position
+                                            ; because they are consecutive in memory
+    ld a, l                  ; 4 T states  
+    and 1                    ; 4 T states  
+    jp nz, X_Is_Odd          ; 10 T states  (34 T states for this block)
     ;; fall through
 X_Is_Even
-    ld a, (Y_Plot_Position)
-    and 1
-    jr nz, X_Even_Y_Odd     
+    ld a, h                  ; 4 T states 
+    and 1                    ; 4 T states
+    jp nz, X_Even_Y_Odd      ; 10 T states
     ;; fall through    
 X_Even_Y_Even
-    ld a, 1
-    jr findAddress
+    ld a, 1                  ; 7 T states
+    jp findAddress           ; 10 T states  (total T states = 69 if end up here))
 X_Even_Y_Odd   
-    ld a, 4
-    jr findAddress
+    ld a, 4                  ; 7 T states
+    jp findAddress           ; 10 T states  (total T states = 69 if end up here))
 X_Is_Odd
-    ld a, h              ; (Y_Plot_Position)
-    and 1
-    jr nz, X_and_Y_Odd     
+    ld a, h                  ; 4 T states 
+    and 1                    ; 4 T states
+    jp nz, X_and_Y_Odd       ; 10 T states
     ;; fall through    
 X_Odd_Y_Even
-    ld a, 2
-    jr findAddress
+    ld a, 2                  ; 7 T states
+    jp findAddress           ; 10 T states  (total 69 T states if end up here)
 X_and_Y_Odd
-    ld a, $87
+    ld a, $87                ; 7 T states   (total 59 T states if end up here)
     
     
 findAddress
     push af
-    push af 
-
-        ld de, 673
-        call print_number8bits
-    pop af 
-
         ld a, (Y_Plot_Position)
         sra a
         ld b, a
@@ -178,7 +129,7 @@ before_XOR_B
     xor b
     ld (hl), a
 
-    call delayTinyAmount
+    ;call delayTinyAmount
     ret
 
 
@@ -193,28 +144,6 @@ TEST_pixel_64_by_48_char_mapping
     ; test 1 vertical bars
 	call CLS
 
-
-    ld hl, Display
-    inc hl
-    ld de, 661
-    add hl, de
-    ld a, 61
-    ld (hl), a
-
-    ld hl, Display
-    inc hl
-    ld de, 666
-    add hl, de
-    ld a, 62
-    ld (hl), a
-
-    ld hl, Display
-    inc hl
-    ld de, 671
-    add hl, de
-    ld a, 38
-    ld (hl), a
-
     ld a, 0    
     ld (X_Plot_Position), a
     ld a, 0
@@ -225,13 +154,6 @@ loopXY
         ld b, 30
 loopXY_inner
         push bc            
-            ld de, 663
-            ld a, (X_Plot_Position)
-            call print_number8bits
-            ld de, 668
-            ld a, (Y_Plot_Position)            
-            call print_number8bits
-
             call drawPixel      
             ld a, (X_Plot_Position)
             inc a       
