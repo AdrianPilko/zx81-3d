@@ -47,9 +47,12 @@
 ; and also to maintain the current character by or'ing the new with the existing at the character
 ; position 
 
+; X Y  are consecutive to save time in drawPixel/undrawPixel
 X_Plot_Position
     defb 0
 Y_Plot_Position
+    defb 0
+LineLength    
     defb 0
 
 
@@ -162,12 +165,73 @@ X_Odd_Y_Even_U
     jp findAddress           ; 10 T states  (total 69 T states if end up here)
 X_and_Y_Odd_U
     ld a, 7                ; 7 T states   (total 59 T states if end up here)
-    jp findAddress
+    jp findAddress         ; 10 T states  (total 69 T states if end up here)
     ret    ;; never gets here, ret is done after findAddress
 
 
 
+drawVerticalLine
+    ; 8 bit memory locations  X_Plot_Position Y_Plot_Position(start) and LineLength set by Caller
+
+    ld a, (LineLength)
+    ld b, a
+drawVerticalLine_loop
+    push bc
+        call drawPixel
+        ld a, (Y_Plot_Position)
+        inc a
+        ld (Y_Plot_Position), a
+    pop bc
+    djnz drawVerticalLine_loop    
+    ret
+
+
+
+
+
 ;;; test code
+local_X_Pos
+    defb 0
+local_Y_Pos
+    defb 0
+local_LineLength
+    defb 0    
+
+TEST_LineDraw
+    call CLS
+    call delaySome
+    ld a, 40
+    ld (local_LineLength), a
+    ld a, 0
+    ld (local_X_Pos), a
+    ld (local_Y_Pos), a
+    ld b, 16
+TEST_LineDrawLoop        
+    push bc
+        ld a, (local_X_Pos)
+        ld (X_Plot_Position), a
+        ld a, (local_Y_Pos)
+        ld (Y_Plot_Position), a
+        ld a, (local_LineLength)
+        ld (LineLength), a
+
+        call drawVerticalLine
+
+        ld a, (local_X_Pos)
+        inc a
+        ld (local_X_Pos), a
+        ld a, (local_Y_Pos)
+        inc a        
+        ld (local_Y_Pos), a
+        ld a, (local_LineLength)
+        dec a
+        dec a
+        ld (local_LineLength), a
+    pop bc
+    djnz TEST_LineDrawLoop
+    call delaySome
+    jp TEST_LineDraw
+    ret
 
 TEST_pixel_64_by_48_char_mapping
 
@@ -201,7 +265,7 @@ loopXY_inner
     pop bc
     djnz loopXY
 
-    call delaySome
+    call delayTinyAmount
 
     ld a, 0    
     ld (X_Plot_Position), a
@@ -228,7 +292,7 @@ loopXY_inner_U
     pop bc
     djnz loopXY_U
 
-    call delaySome
+    call delayTinyAmount
 
     ; test 2 horizontal bars
 
@@ -257,7 +321,7 @@ loopXY_inner2
     pop bc
     djnz loopXY2  
 
-    call delaySome
+    call delayTinyAmount
 
 
 
@@ -286,7 +350,7 @@ loopXY_inner2_U
     pop bc
     djnz loopXY2_U
 
-    call delaySome
+    call delayTinyAmount
 
 	
     ;; Test 3 diagonal line left to right
@@ -307,7 +371,7 @@ loopXY3
     pop bc
     djnz loopXY3
 
-    call delaySome
+    call delayTinyAmount
 
     ld a, 0
     ld (X_Plot_Position), a
@@ -326,7 +390,7 @@ loopXY3_U
     pop bc
     djnz loopXY3_U
 
-    call delaySome
+    call delayTinyAmount
 
 
     ;; Test 4 diagonal line right to left
@@ -348,7 +412,7 @@ loopXY4
     pop bc
     djnz loopXY4
 
-    call delaySome
+    call delayTinyAmount
 
     ld a, 20
     ld (X_Plot_Position), a
@@ -367,12 +431,9 @@ loopXY4_U
     pop bc
     djnz loopXY4_U
 
-END_TEST    
-    jr END_TEST
+    call delayTinyAmount
 
-    call delaySome
-
-    ; test 5 solid block
+    ; test 5 solid block draw and undraw
 	call CLS
     ld a, 0    
     ld (X_Plot_Position), a
@@ -400,11 +461,8 @@ loopXY_inner5
     pop bc
     djnz loopXY5
 
-    call delaySome
-
-    ; test unplotCharacter
-
-	;; don't CLS screen the whole point is should blank
+    call delayTinyAmount
+	
     ld a, 0    
     ld (X_Plot_Position), a
     ld a, 0
@@ -431,35 +489,6 @@ loopXY_inner6
     pop bc
     djnz loopXY6
 
-    call CLS
-;; solid block again then unplot diagonal
-    call delaySome
-
-    ld a, 0    
-    ld (X_Plot_Position), a
-    ld a, 0
-	ld (Y_Plot_Position), a
-    ld b, 40
-loopXY7
-    push bc     
-        ld b, 40
-loopXY_inner7
-        ld a, (X_Plot_Position)
-        push bc           
-            call drawPixel      
-            ld a, (X_Plot_Position)
-            inc a       
-            ld (X_Plot_Position), a        
-        pop bc
-        ld (X_Plot_Position), a        
-        djnz loopXY_inner7
-        ld a, (Y_Plot_Position)
-        inc a                                
-        ld (Y_Plot_Position), a
-        ld a, 0    
-        ld (X_Plot_Position), a
-    pop bc
-    djnz loopXY7
-
+    call delayTinyAmount
     ret
 
