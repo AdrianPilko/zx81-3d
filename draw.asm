@@ -63,7 +63,6 @@ drawPixel
 
 ; see comments and this code up to findAddress is 69 T states
 
-calcPixelAlternate3
     ld hl, (X_Plot_Position) ; 16 T states  ; hl now both X_Plot_Position and Y_Plot_Position
                                             ; because they are consecutive in memory
     ld a, l                  ; 4 T states  
@@ -136,14 +135,46 @@ before_XOR_B
 
 
 undrawPixel 
-    ret    
+    ld hl, (X_Plot_Position) ; 16 T states  ; hl now both X_Plot_Position and Y_Plot_Position
+                                            ; because they are consecutive in memory
+    ld a, l                  ; 4 T states  
+    and 1                    ; 4 T states  
+    jp nz, X_Is_Odd_U          ; 10 T states  (34 T states for this block)
+    ;; fall through
+X_Is_Even_U
+    ld a, h                  ; 4 T states 
+    and 1                    ; 4 T states
+    jp nz, X_Even_Y_Odd_U      ; 10 T states
+    ;; fall through    
+X_Even_Y_Even_U
+    ld a, 129                  ; 7 T states
+    jp findAddress           ; 10 T states  (total T states = 69 if end up here))
+X_Even_Y_Odd_U   
+    ld a, 132                  ; 7 T states
+    jp findAddress           ; 10 T states  (total T states = 69 if end up here))
+X_Is_Odd_U
+    ld a, h                  ; 4 T states 
+    and 1                    ; 4 T states
+    jp nz, X_and_Y_Odd_U       ; 10 T states
+    ;; fall through    
+X_Odd_Y_Even_U
+    ld a, 130                  ; 7 T states
+    jp findAddress           ; 10 T states  (total 69 T states if end up here)
+X_and_Y_Odd_U
+    ld a, 7                ; 7 T states   (total 59 T states if end up here)
+    jp findAddress
+    ret    ;; never gets here, ret is done after findAddress
+
 
 
 ;;; test code
 
 TEST_pixel_64_by_48_char_mapping
+
+;; we run several tests which we draw and then undraw pixels
+
     ; test 1 vertical bars
-	call CLS
+	;call CLS
 
     ld a, 0    
     ld (X_Plot_Position), a
@@ -158,7 +189,7 @@ loopXY_inner
             call drawPixel      
             ld a, (X_Plot_Position)
             inc a       
-            ;inc a  
+            inc a  
             ld (X_Plot_Position), a        
         pop bc
         djnz loopXY_inner
@@ -171,11 +202,36 @@ loopXY_inner
     djnz loopXY
 
     call delaySome
-    jr TEST_pixel_64_by_48_char_mapping
 
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY_U
+    push bc     
+        ld b, 30
+loopXY_inner_U
+        push bc            
+            call undrawPixel      
+            ld a, (X_Plot_Position)
+            inc a       
+            inc a  
+            ld (X_Plot_Position), a        
+        pop bc
+        djnz loopXY_inner_U
+        ld a, (Y_Plot_Position)
+        inc a                               
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY_U
+
+    call delaySome
 
     ; test 2 horizontal bars
-	call CLS
+
     ld a, 0    
     ld (X_Plot_Position), a
     ld a, 0
@@ -199,13 +255,41 @@ loopXY_inner2
         ld a, 0    
         ld (X_Plot_Position), a
     pop bc
-    djnz loopXY2
+    djnz loopXY2  
+
+    call delaySome
+
+
+
+    ld a, 0    
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY2_U
+    push bc     
+        ld b, 30
+loopXY_inner2_U
+        push bc            
+            call drawPixel      
+            ld a, (X_Plot_Position)
+            inc a       
+            ld (X_Plot_Position), a        
+        pop bc
+        djnz loopXY_inner2_U
+        ld a, (Y_Plot_Position)
+        inc a                               
+        inc a         
+        ld (Y_Plot_Position), a
+        ld a, 0    
+        ld (X_Plot_Position), a
+    pop bc
+    djnz loopXY2_U
 
     call delaySome
 
 	
     ;; Test 3 diagonal line left to right
-    call CLS
     ld a, 0
     ld (X_Plot_Position), a
     ld a, 0
@@ -225,8 +309,28 @@ loopXY3
 
     call delaySome
 
+    ld a, 0
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY3_U
+    push bc     
+        call drawPixel      
+        ld a, (X_Plot_Position)
+        inc a       
+        ld (X_Plot_Position), a        
+        ld a, (Y_Plot_Position)
+        inc a       
+        ld (Y_Plot_Position), a                        
+    pop bc
+    djnz loopXY3_U
+
+    call delaySome
+
+
     ;; Test 4 diagonal line right to left
-    call CLS
+
     ld a, 20
     ld (X_Plot_Position), a
     ld a, 0
@@ -243,6 +347,25 @@ loopXY4
         ld (Y_Plot_Position), a                        
     pop bc
     djnz loopXY4
+
+    call delaySome
+
+    ld a, 20
+    ld (X_Plot_Position), a
+    ld a, 0
+	ld (Y_Plot_Position), a
+    ld b, 20
+loopXY4_U
+    push bc     
+        call drawPixel      
+        ld a, (X_Plot_Position)
+        dec a       
+        ld (X_Plot_Position), a        
+        ld a, (Y_Plot_Position)
+        inc a       
+        ld (Y_Plot_Position), a                        
+    pop bc
+    djnz loopXY4_U
 
 END_TEST    
     jr END_TEST
