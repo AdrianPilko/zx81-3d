@@ -126,7 +126,11 @@ Line1Text:      DB $ea                        ; REM
 ;;	jp intro_title		; main entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; end of test modes    
+runTestsContinously
+    ;call TEST_findAddressFast
+    call TEST_LineDraw    
     call TEST_pixel_64_by_48_char_mapping
+    jr runTestsContinously
     ret
 
 include math.asm
@@ -174,6 +178,48 @@ Display        	DB $76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
 Variables
+local_X_Pos
+    defb 0
+local_Y_Pos
+    defb 0
+local_LineLength
+    defb 0 
+; X Y  are consecutive to save time in drawPixel/undrawPixel
+X_Plot_Position
+    defb 0
+Y_Plot_Position
+    defb 0
+LineLength    
+    defb 0
+displayLineLookup           ; we have 48 rows - these are the start address offsets to each row replicated to save extra add
+    defw Display+1  
+    defw Display+34  
+    defw Display+67
+    defw Display+100
+    defw Display+133 
+    defw Display+166   
+    defw Display+199
+    defw Display+232   
+    defw Display+265   
+    defw Display+298  
+    defw Display+331  
+    defw Display+364   
+    defw Display+397    
+    defw Display+430   
+    defw Display+463   
+    defw Display+496 
+    defw Display+529
+    defw Display+562  
+    defw Display+595  
+    defw Display+628   
+    defw Display+661  
+    defw Display+694  
+    defw Display+727 
+    defw Display+760    
+    defw Display+793    
+
+registerDebugText
+    defb 38,0,14,39,40,0,0,14,41,42,0,0,14,45,49,$ff 
 
 VariablesEnd:   DB $80
 BasicEnd:

@@ -42,20 +42,6 @@
 ;; --      135
 ;; -o                          
 
-; the people that designed the zx81 character set did a pretty good job. it makes it possible 
-; with a couple of bit operations to get both the 32,24 position form the 2*32, 2*24 x,y coordinate
-; and also to maintain the current character by or'ing the new with the existing at the character
-; position 
-
-; X Y  are consecutive to save time in drawPixel/undrawPixel
-X_Plot_Position
-    defb 0
-Y_Plot_Position
-    defb 0
-LineLength    
-    defb 0
-
-
 
 drawPixel 
    
@@ -94,7 +80,7 @@ X_Odd_Y_Even
 X_and_Y_Odd
     ld a, $87                ; 7 T states   (total 59 T states if end up here)
     
-    
+
 findAddress
     push af
         ld a, (Y_Plot_Position)
@@ -126,7 +112,10 @@ findAddress
         ld   de, Display    
         inc de
         add  hl, de       ; hl = screen address
-        ld a, (hl)           
+        ld a, (hl)     
+
+        ld bc, (X_Plot_Position)      
+        call debugPrintRegisters
     pop bc    
 before_XOR_B
     xor b
@@ -135,6 +124,73 @@ before_XOR_B
     ;call delayTinyAmount
     ret
 
+
+drawPixelFast 
+   
+; why using ld hl, (nn) rather than two ld a, (nn) for X/Y positions
+; ld a, (nn) is 13 T states, ld hl, (nn) is 16, but we have todo another 
+; load from h to a and l to a each 4
+; so either (13 * 2) + (2 * 4) = 34, or 16 + 8 = 24 saving 8, so use ld hl, (nn)
+
+; see comments and this code up to findAddress is 69 T states
+
+    ld hl, (X_Plot_Position) ; 16 T states  ; hl now both X_Plot_Position and Y_Plot_Position
+                                            ; because they are consecutive in memory
+    ld a, l                  ; 4 T states  
+    and 1                    ; 4 T states  
+    jp nz, X_Is_Odd_F          ; 10 T states  (34 T states for this block)
+    ;; fall through
+X_Is_Even_F
+    ld a, h                  ; 4 T states 
+    and 1                    ; 4 T states
+    jp nz, X_Even_Y_Odd_F      ; 10 T states
+    ;; fall through    
+X_Even_Y_Even_F
+    ld a, 1                  ; 7 T states
+    jp findAddressFast           ; 10 T states  (total T states = 69 if end up here))
+X_Even_Y_Odd_F   
+    ld a, 4                  ; 7 T states
+    jp findAddressFast           ; 10 T states  (total T states = 69 if end up here))
+X_Is_Odd_F
+    ld a, h                  ; 4 T states 
+    and 1                    ; 4 T states
+    jp nz, X_and_Y_Odd_F       ; 10 T states
+    ;; fall through    
+X_Odd_Y_Even_F
+    ld a, 2                  ; 7 T states 
+    jp findAddressFast           ; 10 T states  (total 69 T states if end up here)
+X_and_Y_Odd_F
+    ld a, $87                ; 7 T states   (total 59 T states if end up here)
+    
+findAddressFast
+    push af                             ; store our (hard earned character code!)                          
+        ld hl, displayLineLookup        ; set hl to the lookup table address
+        ld a, (Y_Plot_Position)         ; get our y position
+        sra a                            
+        ld e, a                         ; offset from lookup table start by y position
+        ld d, 0                         
+        add  hl, de      ; HL = LookupTable + index
+        add  hl, de      ; HL = LookupTable + index*2
+
+        ; Now HL points to the 16-bit address entry
+        ld   e, (hl)     ; low byte of address
+        inc  hl
+        ld   d, (hl)     ; high byte of address
+        ex de, hl
+
+        ld a, (X_Plot_Position)  
+        sra a     
+
+        ld d, 0
+        ld e, a        
+        add hl, de
+        ld a, (hl)          
+        ;ld bc, (X_Plot_Position) ; debug
+        ;call debugPrintRegisters        
+    pop bc
+    xor b    
+    ld (hl), a
+    ret
 
 
 undrawPixel 
@@ -151,10 +207,10 @@ X_Is_Even_U
     ;; fall through    
 X_Even_Y_Even_U
     ld a, 129                  ; 7 T states
-    jp findAddress           ; 10 T states  (total T states = 69 if end up here))
+    jp findAddressFast           ; 10 T states  (total T states = 69 if end up here))
 X_Even_Y_Odd_U   
     ld a, 132                  ; 7 T states
-    jp findAddress           ; 10 T states  (total T states = 69 if end up here))
+    jp findAddressFast           ; 10 T states  (total T states = 69 if end up here))
 X_Is_Odd_U
     ld a, h                  ; 4 T states 
     and 1                    ; 4 T states
@@ -162,10 +218,10 @@ X_Is_Odd_U
     ;; fall through    
 X_Odd_Y_Even_U
     ld a, 130                  ; 7 T states
-    jp findAddress           ; 10 T states  (total 69 T states if end up here)
+    jp findAddressFast           ; 10 T states  (total 69 T states if end up here)
 X_and_Y_Odd_U
     ld a, 7                ; 7 T states   (total 59 T states if end up here)
-    jp findAddress         ; 10 T states  (total 69 T states if end up here)
+    jp findAddressFast         ; 10 T states  (total 69 T states if end up here)
     ret    ;; never gets here, ret is done after findAddress
 
 
@@ -177,7 +233,8 @@ drawVerticalLine
     ld b, a
 drawVerticalLine_loop
     push bc
-        call drawPixel
+        call drawPixelFast
+        ;call drawPixel
         ld a, (Y_Plot_Position)
         inc a
         ld (Y_Plot_Position), a
@@ -190,16 +247,39 @@ drawVerticalLine_loop
 
 
 ;;; test code
-local_X_Pos
-    defb 0
-local_Y_Pos
-    defb 0
-local_LineLength
-    defb 0    
+  
+
+TEST_findAddressFast
+    call CLS
+    ld a, 0
+    ld (X_Plot_Position), a 
+    ld a, 0    
+    ld (Y_Plot_Position), a
+    ld b, 63
+loopTestFindAddress    
+    push bc
+        ld b, 43
+loopTestFindAddress_inner        
+        push bc            
+            call drawPixelFast                      
+            ld a, (Y_Plot_Position)
+            inc a
+            ld (Y_Plot_Position), a
+        pop bc                
+        djnz loopTestFindAddress_inner
+        ld a, (X_Plot_Position)
+        inc a
+        ld (X_Plot_Position), a
+        ld a, 0
+        ld (Y_Plot_Position), a
+    pop bc
+    djnz loopTestFindAddress
+    jp TEST_findAddressFast
+    ret
+ 
 
 TEST_LineDraw
-    call CLS
-    call delaySome
+    call CLS    
     ld a, 40
     ld (local_LineLength), a
     ld a, 0
@@ -229,8 +309,7 @@ TEST_LineDrawLoop
         ld (local_LineLength), a
     pop bc
     djnz TEST_LineDrawLoop
-    call delaySome
-    jp TEST_LineDraw
+    call delaySome    
     ret
 
 TEST_pixel_64_by_48_char_mapping
@@ -238,7 +317,7 @@ TEST_pixel_64_by_48_char_mapping
 ;; we run several tests which we draw and then undraw pixels
 
     ; test 1 vertical bars
-	;call CLS
+	call CLS
 
     ld a, 0    
     ld (X_Plot_Position), a
@@ -250,7 +329,7 @@ loopXY
         ld b, 30
 loopXY_inner
         push bc            
-            call drawPixel      
+            call drawPixelFast      
             ld a, (X_Plot_Position)
             inc a       
             inc a  
@@ -306,7 +385,7 @@ loopXY2
         ld b, 30
 loopXY_inner2
         push bc            
-            call drawPixel      
+            call drawPixelFast      
             ld a, (X_Plot_Position)
             inc a       
             ld (X_Plot_Position), a        
@@ -335,7 +414,7 @@ loopXY2_U
         ld b, 30
 loopXY_inner2_U
         push bc            
-            call drawPixel      
+            call drawPixelFast      
             ld a, (X_Plot_Position)
             inc a       
             ld (X_Plot_Position), a        
@@ -361,7 +440,7 @@ loopXY_inner2_U
     ld b, 20
 loopXY3
     push bc     
-        call drawPixel      
+        call drawPixelFast      
         ld a, (X_Plot_Position)
         inc a       
         ld (X_Plot_Position), a        
@@ -380,7 +459,7 @@ loopXY3
     ld b, 20
 loopXY3_U
     push bc     
-        call drawPixel      
+        call drawPixelFast      
         ld a, (X_Plot_Position)
         inc a       
         ld (X_Plot_Position), a        
@@ -402,7 +481,7 @@ loopXY3_U
     ld b, 20
 loopXY4
     push bc     
-        call drawPixel      
+        call drawPixelFast      
         ld a, (X_Plot_Position)
         dec a       
         ld (X_Plot_Position), a        
@@ -421,7 +500,7 @@ loopXY4
     ld b, 20
 loopXY4_U
     push bc     
-        call drawPixel      
+        call drawPixelFast      
         ld a, (X_Plot_Position)
         dec a       
         ld (X_Plot_Position), a        
@@ -446,7 +525,7 @@ loopXY5
 loopXY_inner5
         ld a, (X_Plot_Position)
         push bc           
-            call drawPixel      
+            call drawPixelFast      
             ld a, (X_Plot_Position)
             inc a       
             ld (X_Plot_Position), a        

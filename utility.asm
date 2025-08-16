@@ -131,3 +131,83 @@ delayTinyInner
     pop bc
     djnz delayTinyOuter
     ret
+
+
+PRINTAT			EQU $08F5
+
+hexprint 	
+    ;; assumes character position already moved as per PRINTAT rom routine
+    ;; rst $10 print character and moves the cursor position over right one
+
+	push af    ; need a later
+	and $f0    ; mask out first digit
+	rra
+	rra
+	rra
+	rra
+	add a, $1c ; add 28 to get printable character code
+	call $10    ; print using character out rst calls the rom subroutine
+	pop af     ; get a back 
+	and $0f    ; mask out fist digit
+	add A,$1c  ; add 28 to get printable character code
+	call $10    ; print using character out rst calls the rom subroutine
+	ret
+
+
+debugPrintRegisters
+    ; take copy of all the registers
+    push hl
+    push de
+    push af    
+    push bc
+    
+    ; position the cursor
+    ;set b to row, c to first col, which is the last row
+    ld b, 21
+    ld c, 0    
+    call PRINTAT
+    pop bc
+    pop af
+    pop de
+    pop hl    
+    
+    push hl
+    push de
+    push af    
+    push bc
+    
+    ld a, a
+    call hexprint    
+    ld a, 14
+    call $10
+
+    ld a, b
+    call hexprint
+    ld a, c
+    call hexprint   
+    ld a, 14
+    call $10    
+       
+    ld a, d
+    call hexprint
+    ld a, e
+    call hexprint
+    ld a, 14
+    call $10
+
+    ld a, h
+    call hexprint    
+    ld a, l    
+    call hexprint
+
+    ld de, registerDebugText
+    ld bc, 661
+    call printstring 
+   
+    ;restore registers (in correct reverse order!)        
+    pop bc
+    pop af
+    pop de
+    pop hl
+    
+    ret    
