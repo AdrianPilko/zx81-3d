@@ -193,7 +193,7 @@ findAddressFast
     ret
 
 
-undrawPixel 
+undrawPixelFast 
     ld hl, (X_Plot_Position) ; 16 T states  ; hl now both X_Plot_Position and Y_Plot_Position
                                             ; because they are consecutive in memory
     ld a, l                  ; 4 T states  
@@ -228,7 +228,6 @@ X_and_Y_Odd_U
 
 drawVerticalLine
     ; 8 bit memory locations  X_Plot_Position Y_Plot_Position(start) and LineLength set by Caller
-
     ld a, (LineLength)
     ld b, a
 drawVerticalLine_loop
@@ -242,12 +241,219 @@ drawVerticalLine_loop
     djnz drawVerticalLine_loop    
     ret
 
+drawHorizLine
+    ; 8 bit memory locations  X_Plot_Position(start) Y_Plot_Position and LineLength set by Caller
+    ld a, (LineLength)
+    ld b, a
+drawHorizLine_loop
+    push bc
+        call drawPixelFast
+        ;call drawPixel
+        ld a, (X_Plot_Position)
+        inc a
+        ld (X_Plot_Position), a
+    pop bc
+    djnz drawHorizLine_loop    
+    ret
+
+
+undrawVerticalLine
+    ; 8 bit memory locations  X_Plot_Position Y_Plot_Position(start) and LineLength set by Caller
+    ld a, (LineLength)
+    ld b, a
+undrawVerticalLine_loop
+    push bc
+        call undrawPixelFast
+        ld a, (Y_Plot_Position)
+        inc a
+        ld (Y_Plot_Position), a
+    pop bc
+    djnz undrawVerticalLine_loop    
+    ret
+
+undrawHorizLine
+    ; 8 bit memory locations  X_Plot_Position(start) Y_Plot_Position and LineLength set by Caller
+    ld a, (LineLength)
+    ld b, a
+undrawHorizLine_loop
+    push bc
+        call undrawPixelFast
+        ;call drawPixel
+        ld a, (X_Plot_Position)
+        inc a
+        ld (X_Plot_Position), a
+    pop bc
+    djnz undrawHorizLine_loop    
+    ret
+
+
+drawSquare
+    ; 8 bit memory locations top left X_Plot_Position Y_Plot_Position and SideLength set by Caller
+
+    ; store the original X_Plot_Position Y_Plot_Position
+    ld a, (X_Plot_Position)
+    ld (local_X_Pos), a
+    ld a, (Y_Plot_Position)
+    ld (local_Y_Pos), a    
+    
+    ;; draw top and bottom lines
+    ld a, (SideLength)    
+    ld (LineLength), a
+    call drawHorizLine
+    ld a, (SideLength)
+    ld (LineLength), a
+    ld b, a
+    ld a, (local_Y_Pos)
+    add a, b
+    ld (Y_Plot_Position), a
+    ld a, (local_X_Pos)
+    ld (X_Plot_Position), a
+    call drawHorizLine  
+
+    ;; draw both sides
+    ld a, (local_Y_Pos)    
+    ld (Y_Plot_Position), a
+    ld a, (local_X_Pos)
+    ld (X_Plot_Position), a
+    ld a, (SideLength)    
+    ld (LineLength), a
+    call drawVerticalLine
+
+    ld a, (SideLength)
+    ld (LineLength), a
+    ld b, a
+    ld a, (local_X_Pos)
+    add a, b
+    ld (X_Plot_Position), a
+    ld a, (local_Y_Pos)
+    ld (Y_Plot_Position), a
+    call drawVerticalLine
+
+    ;; seems that because of the xor the top left and bottom right pixels missing
+    ;; so call drawPixel again
+ ;   ld a, (local_X_Pos)
+ ;   ld (X_Plot_Position), a
+ ;   ld a, (local_Y_Pos) 
+ ;   ld (Y_Plot_Position), a
+ ;   call drawPixelFast  
+;;
+;    ld a, (SideLength)
+;    ld b, a    
+;    ld a, (local_X_Pos)
+;    add a, b 
+;    ld (X_Plot_Position), a
+;
+    ;ld a, (SideLength)
+    ;ld b, a    
+    ;ld a, (local_Y_Pos) 
+    ;add a, b 
+    ;ld (Y_Plot_Position), a
+    ;call drawPixelFast  
+    ret
 
 
 
+
+undrawSquare
+    ; 8 bit memory locations top left X_Plot_Position Y_Plot_Position and SideLength set by Caller
+
+    ; store the original X_Plot_Position Y_Plot_Position
+    ld a, (X_Plot_Position)
+    ld (local_X_Pos), a
+    ld a, (Y_Plot_Position)
+    ld (local_Y_Pos), a    
+    
+    ;; draw top and bottom lines
+    ld a, (SideLength)    
+    ld (LineLength), a
+    call undrawHorizLine
+    ld a, (SideLength)
+    ld (LineLength), a
+    ld b, a
+    ld a, (local_Y_Pos)
+    add a, b
+    ld (Y_Plot_Position), a
+    ld a, (local_X_Pos)
+    ld (X_Plot_Position), a
+    call undrawHorizLine  
+
+    ;; draw both sides
+    ld a, (local_Y_Pos)    
+    ld (Y_Plot_Position), a
+    ld a, (local_X_Pos)
+    ld (X_Plot_Position), a
+    ld a, (SideLength)    
+    ld (LineLength), a
+    call undrawVerticalLine
+
+    ld a, (SideLength)
+    ld (LineLength), a
+    ld b, a
+    ld a, (local_X_Pos)
+    add a, b
+    ld (X_Plot_Position), a
+    ld a, (local_Y_Pos)
+    ld (Y_Plot_Position), a
+    call undrawVerticalLine
+
+    ;; seems that because of the xor the top left and bottom right pixels missing
+    ;; so call drawPixel again
+    ;ld a, (local_X_Pos)
+    ;ld (X_Plot_Position), a
+    ;ld a, (local_Y_Pos) 
+    ;ld (Y_Plot_Position), a
+    ;call undrawPixelFast  
+
+    ;ld a, (SideLength)
+    ;ld b, a    
+    ;ld a, (local_X_Pos)
+    ;add a, b 
+    ;ld (X_Plot_Position), a
+
+    ;ld a, (SideLength)
+    ;ld b, a    
+    ;ld a, (local_Y_Pos) 
+    ;add a, b 
+    ;ld (Y_Plot_Position), a
+    ;call undrawPixelFast      
+
+    ret
+
+
+
+;; plot a line from x1,y1 to x2,y2
+;;https://en.wikipedia.org/wiki/Line_drawing_algorithm
+;dx = x2 − x1
+;dy = y2 − y1
+;m = dy/dx
+;for x from x1 to x2 do
+;    y = m × (x − x1) + y1
+;    plot(x, y)
+
+;we have  these memory locations that should be setup before calling
+;X_Plot_Position    ; y1
+;Y_Plot_Position    ; y1
+;X_2_Plot_Position  ; x2 
+;Y_2_Plot_Position  ; y2
+
+plotLine_dx
+    defb 0
+plotLine_dy
+    defb 0
+plotLine_m 
+    defb 0
+plotLine_local_X
+    defb 0
+plotLine_local_Y
+    defb 0
+
+
+drawline
+    ;; todo
+    ret
+    
 
 ;;; test code
-  
 
 TEST_findAddressFast
     call CLS
@@ -356,7 +562,7 @@ loopXY_U
         ld b, 30
 loopXY_inner_U
         push bc            
-            call undrawPixel      
+            call undrawPixelFast
             ld a, (X_Plot_Position)
             inc a       
             inc a  
@@ -553,7 +759,7 @@ loopXY6
 loopXY_inner6
         ld a, (X_Plot_Position)
         push bc           
-            call undrawPixel      
+            call undrawPixelFast      
             ld a, (X_Plot_Position)
             inc a       
             ld (X_Plot_Position), a        

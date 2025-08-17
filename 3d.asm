@@ -126,11 +126,96 @@ Line1Text:      DB $ea                        ; REM
 ;;	jp intro_title		; main entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; end of test modes    
+x_pos
+    defb 3
+y_pos
+    defb 3    
+    call CLS
+    ld a, 5
+    ld (SideLength), a    
 runTestsContinously
+    
+    ld a, 3
+    ld (x_pos),a
+    ld (y_pos),a        
+    ld b, 10    
+squareDrawDemoLoop    
+    push bc
+        ld a, (x_pos)
+        ld (X_Plot_Position),a
+        ld a, (y_pos)
+        ld (Y_Plot_Position),a
+        call drawSquare
+
+       ; call delayTinyAmount
+        
+        ld a, (x_pos)
+        ld (X_Plot_Position),a
+        ld a, (y_pos)
+        ld (Y_Plot_Position),a
+        call undrawSquare
+        ;call CLS
+
+        ld a, (x_pos)
+        inc a
+        ld (x_pos),a        
+
+        ld a, (y_pos)
+        inc a
+        ld (y_pos),a
+    pop bc
+    djnz squareDrawDemoLoop
+
+    ld b, 10    
+squareDrawDemoBackLoop    
+    push bc
+        ld a, (x_pos)
+        ld (X_Plot_Position),a
+        ld a, (y_pos)
+        ld (Y_Plot_Position),a
+        call drawSquare
+
+       ; call delayTinyAmount
+        
+        ld a, (x_pos)
+        ld (X_Plot_Position),a
+        ld a, (y_pos)
+        ld (Y_Plot_Position),a
+        call undrawSquare
+        ;call CLS
+
+        ld a, (x_pos)
+        dec a
+        ld (x_pos),a        
+
+        ld a, (y_pos)
+        dec a
+        ld (y_pos),a
+
+        
+
+    pop bc
+    djnz squareDrawDemoBackLoop
+    
+    ld a, (SideLength)
+    inc a
+    ld (SideLength), a
+
+    cp 30
+    jp z, resetSize
+    jp runTestsContinously
+resetSize    
+    ld a, 5    
+    ld (SideLength), a
+    jp runTestsContinously
+
+
+
+
     ;call TEST_findAddressFast
     call TEST_LineDraw    
     call TEST_pixel_64_by_48_char_mapping
-    jr runTestsContinously
+    jp runTestsContinously
     ret
 
 include math.asm
@@ -189,8 +274,15 @@ X_Plot_Position
     defb 0
 Y_Plot_Position
     defb 0
+X_2_Plot_Position
+    defb 0
+Y_2_Plot_Position    
+    defb 0
 LineLength    
     defb 0
+SideLength
+    defb 0
+
 displayLineLookup           ; we have 48 rows - these are the start address offsets to each row replicated to save extra add
     defw Display+1  
     defw Display+34  
@@ -217,6 +309,7 @@ displayLineLookup           ; we have 48 rows - these are the start address offs
     defw Display+727 
     defw Display+760    
     defw Display+793    
+
 
 registerDebugText
     defb 38,0,14,39,40,0,0,14,41,42,0,0,14,45,49,$ff 
