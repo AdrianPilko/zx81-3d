@@ -188,7 +188,8 @@ findAddressFast
         ;ld bc, (X_Plot_Position) ; debug
         ;call debugPrintRegisters        
     pop bc
-    xor b    
+    
+    xor b
     ld (hl), a
     ret
 
@@ -206,7 +207,7 @@ X_Is_Even_U
     jp nz, X_Even_Y_Odd_U      ; 10 T states
     ;; fall through    
 X_Even_Y_Even_U
-    ld a, 129                  ; 7 T states
+    ld a, 129                  ; 7 T states    
     jp findAddressFast           ; 10 T states  (total T states = 69 if end up here))
 X_Even_Y_Odd_U   
     ld a, 132                  ; 7 T states
@@ -217,12 +218,12 @@ X_Is_Odd_U
     jp nz, X_and_Y_Odd_U       ; 10 T states
     ;; fall through    
 X_Odd_Y_Even_U
-    ld a, 130                  ; 7 T states
+    ld a, 130                  ; 7 T states    
     jp findAddressFast           ; 10 T states  (total 69 T states if end up here)
 X_and_Y_Odd_U
-    ld a, 7                ; 7 T states   (total 59 T states if end up here)
+    ld a, 7                ; 7 T states   (total 59 T states if end up here)    
     jp findAddressFast         ; 10 T states  (total 69 T states if end up here)
-    ret    ;; never gets here, ret is done after findAddress
+    ret    ;; never gets here, ret is done after findAddressFast
 
 
 
@@ -326,29 +327,16 @@ drawSquare
     add a, b
     ld (X_Plot_Position), a
     ld a, (local_Y_Pos)
-    ld (Y_Plot_Position), a
+    ld (Y_Plot_Position), a    
     call drawVerticalLine
 
-    ;; seems that because of the xor the top left and bottom right pixels missing
-    ;; so call drawPixel again
- ;   ld a, (local_X_Pos)
- ;   ld (X_Plot_Position), a
- ;   ld a, (local_Y_Pos) 
- ;   ld (Y_Plot_Position), a
- ;   call drawPixelFast  
-;;
-;    ld a, (SideLength)
-;    ld b, a    
-;    ld a, (local_X_Pos)
-;    add a, b 
-;    ld (X_Plot_Position), a
-;
-    ;ld a, (SideLength)
-    ;ld b, a    
-    ;ld a, (local_Y_Pos) 
-    ;add a, b 
-    ;ld (Y_Plot_Position), a
-    ;call drawPixelFast  
+    ;draw top right again??!
+    ld a, (local_X_Pos)
+    ld (X_Plot_Position), a
+    ld a, (local_Y_Pos)
+    ld (Y_Plot_Position), a
+    call drawPixelFast
+
     ret
 
 
@@ -396,27 +384,12 @@ undrawSquare
     ld (Y_Plot_Position), a
     call undrawVerticalLine
 
-    ;; seems that because of the xor the top left and bottom right pixels missing
-    ;; so call drawPixel again
-    ;ld a, (local_X_Pos)
-    ;ld (X_Plot_Position), a
-    ;ld a, (local_Y_Pos) 
-    ;ld (Y_Plot_Position), a
-    ;call undrawPixelFast  
-
-    ;ld a, (SideLength)
-    ;ld b, a    
-    ;ld a, (local_X_Pos)
-    ;add a, b 
-    ;ld (X_Plot_Position), a
-
-    ;ld a, (SideLength)
-    ;ld b, a    
-    ;ld a, (local_Y_Pos) 
-    ;add a, b 
-    ;ld (Y_Plot_Position), a
-    ;call undrawPixelFast      
-
+    ;undraw top right again??!
+    ld a, (local_X_Pos)
+    ld (X_Plot_Position), a
+    ld a, (local_Y_Pos)
+    ld (Y_Plot_Position), a
+    call undrawPixelFast
     ret
 
 

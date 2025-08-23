@@ -125,97 +125,37 @@ Line1Text:      DB $ea                        ; REM
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;	jp intro_title		; main entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; end of test modes    
-x_pos
-    defb 3
-y_pos
-    defb 3    
-    call CLS
-    ld a, 5
+
+    ;jp runNormalTests
+;;; end of test modes   
+    call CLS   ; only clear screen the first time, after that the undraw does the work
+drawUndrawSquareTest
+    
+    ld a, 10
     ld (SideLength), a    
-runTestsContinously
-    
-    ld a, 3
-    ld (x_pos),a
-    ld (y_pos),a        
-    ld b, 10    
-squareDrawDemoLoop    
-    push bc
-        ld a, (x_pos)
-        ld (X_Plot_Position),a
-        ld a, (y_pos)
-        ld (Y_Plot_Position),a
-        call drawSquare
-
-       ; call delayTinyAmount
-        
-        ld a, (x_pos)
-        ld (X_Plot_Position),a
-        ld a, (y_pos)
-        ld (Y_Plot_Position),a
-        call undrawSquare
-        ;call CLS
-
-        ld a, (x_pos)
-        inc a
-        ld (x_pos),a        
-
-        ld a, (y_pos)
-        inc a
-        ld (y_pos),a
-    pop bc
-    djnz squareDrawDemoLoop
-
-    ld b, 10    
-squareDrawDemoBackLoop    
-    push bc
-        ld a, (x_pos)
-        ld (X_Plot_Position),a
-        ld a, (y_pos)
-        ld (Y_Plot_Position),a
-        call drawSquare
-
-       ; call delayTinyAmount
-        
-        ld a, (x_pos)
-        ld (X_Plot_Position),a
-        ld a, (y_pos)
-        ld (Y_Plot_Position),a
-        call undrawSquare
-        ;call CLS
-
-        ld a, (x_pos)
-        dec a
-        ld (x_pos),a        
-
-        ld a, (y_pos)
-        dec a
-        ld (y_pos),a
-
-        
-
-    pop bc
-    djnz squareDrawDemoBackLoop
-    
-    ld a, (SideLength)
-    inc a
-    ld (SideLength), a
-
-    cp 30
-    jp z, resetSize
-    jp runTestsContinously
-resetSize    
-    ld a, 5    
-    ld (SideLength), a
-    jp runTestsContinously
 
 
+    ld (X_Plot_Position),a
+    ld (Y_Plot_Position),a
+    call drawSquare
+
+    call delaySome
+
+    ld a, 10
+    ld (X_Plot_Position),a
+    ld (Y_Plot_Position),a
+    call undrawSquare
+
+    call delaySome
+    jp drawUndrawSquareTest
 
 
+runNormalTests
     ;call TEST_findAddressFast
     call TEST_LineDraw    
+    
     call TEST_pixel_64_by_48_char_mapping
-    jp runTestsContinously
+    jp runNormalTests
     ret
 
 include math.asm

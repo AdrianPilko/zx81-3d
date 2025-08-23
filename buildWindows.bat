@@ -12,6 +12,6 @@ call c:\retro\pasmo.exe -v 3d.asm 3d.p 3d.lst
 
 REM call will auto run emulator EightyOne if installed
 REM comment in or out usin rem which one to run
-rem call 3d.p 
+call 3d.p 
 pause
 
